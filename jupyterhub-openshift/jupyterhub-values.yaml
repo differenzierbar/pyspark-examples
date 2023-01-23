@@ -1,0 +1,75 @@
+fullnameOverride: jupyterhub
+hub:
+  # command: ["jupyterhub", "--config", "/usr/local/etc/jupyterhub/jupyterhub_config.py"]
+  image:
+    name: image-registry.openshift-image-registry.svc:5000/spark/k8s-hub
+    tag: "2.0.0"
+  config:
+    OpenShiftOAuthenticator:
+      oauth_callback_url: https://jupyterhub.apps-crc.testing/hub/oauth_callback
+      client_id: system:serviceaccount:spark:jupyterhub-oauth
+      client_secret: eyJhbGciOiJSUzI1NiIsImtpZCI6Im8zTFl3dUFkVEs4TFA5U1cySW01TU5aLXNZUU95X2VEbV9PdHZLSEdWQ3cifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJzcGFyayIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJqdXB5dGVyaHViLW9hdXRoLXRva2VuLWdjN2dxIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6Imp1cHl0ZXJodWItb2F1dGgiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJjMTlkOGQ0ZC1kNGJmLTQxN2QtOGNmNS1jNTAwZWIyYjU4NzkiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6c3Bhcms6anVweXRlcmh1Yi1vYXV0aCJ9.rcWqLdvpwwWKkC-wobTs81fwVawDOeRQvJ2djGv0j8I-JRSKydsC3U4YYbGHlvL9aRfVQidBTSYrTzlJkfsk2H_AB63CnHQEOevyry5BlkkfJk68kGp9iqh2jR_e6tX19VqaFCi4sxd72SG2EE2Arz-BNUWmbDF8gNqGGYyifjMVZ-KizeoQNWHYzA4j5f9OKsnawOoLk0CSmjlc3t2riKBzxU5BvgPxqQAuVVr0VxmFRJnuFzIicyACT7ZVgpvKmuWxfL01bDRzwKaBB0BZFncdzUsoYidf0cpG_f5aUMqbbw4ss4GdH-TVD3dg9X5t8bhQH6vTMolFPRk55Xsl5EOOwttnVAPLeZ1lti8_rXie_BzMWORhN7hgxSpXFO1vdSYVF9zZrojOeMIUw9L0x61Ts_ZlPH1s7iLuZCFLdz-8PKHzs-RVsxv2T3tuSjUIxxe-IyNM2jR9cvpAd99OhDeNMon-WuOPwqmzhLF0mXPLQTd3RUt-8jK2dByGt_0iS9BB9NBvwX1iB5LPuUVTg27W-KmHHBlETpk6_HOgqdYjVEMjWucf3o7bs-QwPXsIdRgvm77qUwaeyjPO0pq11VsRaSJ93Bj68lfMYeP8jrsHoa8Sz7v05pe0kj6a-A1S461Fr369nQwuMjh0oyEBjZcuyl1rYlX4eXXqdGJjDy0
+    JupyterHub:
+      authenticator_class: openshift
+      admin_access: false
+  extraEnv:
+    JUPYERHUB_SINGLEUSER_APP: "jupyter_server.serverapp.ServerApp"
+    JUPYTER_ENABLE_LAB: 'true'
+    OPENSHIFT_AUTH_API_URL: https://oauth-openshift.apps-crc.testing
+    OPENSHIFT_REST_API_URL: https://api.crc.testing:6443
+    NO_PROXY: "localhost,127.0.0.1"
+  extraConfig:
+    ipaddress: |
+      from kubernetes import client
+
+      def modify_pod_hook(spawner, pod):
+          pod.spec.containers[0].env.append(client.V1EnvVar("POD_IP", None, client.V1EnvVarSource(None, client.V1ObjectFieldSelector(None, "status.podIP"))))
+          return pod
+      c.KubeSpawner.modify_pod_hook = modify_pod_hook
+  networkPolicy:
+    enabled: false
+proxy: 
+  chp:
+    networkPolicy:
+      enabled: false
+singleuser:
+  defaultUrl: "/lab"
+  uid: 1000
+  image:
+    name: image-registry.openshift-image-registry.svc:5000/spark/pyspark-notebook
+    tag: spark-3.3.1-python-3.9
+  cmd: ["/usr/local/bin/start.sh", "jupyterhub-singleuser"]
+  serviceAccountName: jupyterhub-spark
+  storage:
+    type: none
+    extraVolumes:
+      - name: ecc
+        hostPath:
+          path: "/home/tobias/ecc"
+          # path: "/home/{{ tpl .Values.hostUser . }}/ecc"
+      - name: ssh
+        hostPath:
+          path: "/home/tobias/.ssh"
+          # path: "/home/{{ tpl .Values.hostUser . }}/.ssh"
+      - name: gitconfig
+        hostPath:
+          path: "/home/tobias/.gitconfig"
+          # path: "/home/{{ tpl .Values.hostUser . }}/.gitconfig"
+    extraVolumeMounts:
+      - mountPath: /home/jovyan/work
+        name: ecc
+      - mountPath: /home/jovyan/.ssh
+        name: ssh
+        readOnly: true
+      - mountPath: /home/jovyan/.gitconfig
+        name: gitconfig
+        readOnly: true
+  profileList:
+    - display_name: "Default"
+      default: true
+      kubespawner_override:
+        args: ['--NotebookApp.allow_origin=*']
+        automount_service_account_token: true
+        # image_spec: 
+  networkPolicy:
+    enabled: false

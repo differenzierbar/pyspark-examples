@@ -1,0 +1,50 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: jupyter-notebook
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    app.kubernetes.io/name: jupyter-notebook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: jupyter-notebook
+    spec:
+      serviceAccountName: spark
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/spark/pyspark-notebook:spark-3.3.1-python-3.9
+        name: main
+        automountServiceAccountToken: true
+        ports:
+          - name: http
+            containerPort: 8888
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumeMounts:
+        - mountPath: /home/jovyan/work
+          name: ecc
+          subpath: ecc
+        - mountPath: /home/jovyan/.ssh
+          name: ssh
+          readOnly: true
+        - mountPath: /home/jovyan/.gitconfig
+          name: gitconfig
+          readOnly: true
+      volumes:
+        - name: ecc
+          hostPath:
+            path: /home/tobias/ecc
+        - name: ssh
+          hostPath:
+            path: /home/tobias/.ssh
+        - name: gitconfig
+          hostPath:
+            path: /home/tobias/.gitconfig
+  triggers:
+  - type: ConfigChange

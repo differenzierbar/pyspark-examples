@@ -1,0 +1,47 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: k8s-hub
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: k8s-hub-docker-hub
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - name: "2.0.0"
+    from:
+      kind: DockerImage
+      name: jupyterhub/k8s-hub:2.0.0
+    referencePolicy:
+      type: Source
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: k8s-hub
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM jupyterhub/k8s-hub:2.0.0
+      USER 0
+      RUN pip install kubernetes
+      USER 1000
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: 'k8s-hub-docker-hub:2.0.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'k8s-hub:2.0.0'
+  triggers:
+    - type: ImageChange

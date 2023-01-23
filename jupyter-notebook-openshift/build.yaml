@@ -1,0 +1,50 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: pyspark-notebook
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: pyspark-notebook-docker-hub
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+  - name: "spark-3.3.1"
+    from:
+      kind: DockerImage
+      name: jupyter/pyspark-notebook:spark-3.3.1
+    referencePolicy:
+      type: Source
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: pyspark-notebook
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM jupyter/pyspark-notebook:spark-3.3.1
+      USER 0
+      # downgrade to python 3.9 
+      # to be compatible with py-spark 
+      # jupyter notebook image https://hub.docker.com/r/apache/spark-py 
+      RUN conda install python=3.9
+      USER 1000
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: 'pyspark-notebook-docker-hub:spark-3.3.1'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'pyspark-notebook:latest'
+  triggers:
+    - type: ImageChange

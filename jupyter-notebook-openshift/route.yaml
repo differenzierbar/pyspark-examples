@@ -1,0 +1,11 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: jupyter-notebook
+spec:
+  host: jupyter-notebook.apps-crc.testing
+  port:
+    targetPort: http 
+  to:
+    kind: Service
+    name: jupyter-notebook

@@ -1,0 +1,53 @@
+# use anyuid scc because notebook images have to run with uid 1000
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: scc-anyuid
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - anyuid
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sa-to-scc-anyuid
+subjects:
+  - kind: ServiceAccount
+    name: spark
+roleRef:
+  kind: Role
+  name: scc-anyuid
+  apiGroup: rbac.authorization.k8s.io
+---
+# use privileged scc as alternative to anyui to mount a workspace folder from the host
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: scc-privileged
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sa-to-scc-privileged
+subjects:
+  - kind: ServiceAccount
+    name: spark
+roleRef:
+  kind: Role
+  name: scc-privileged
+  apiGroup: rbac.authorization.k8s.io
