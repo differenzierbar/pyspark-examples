@@ -1,0 +1,328 @@
+---
+# use privileged scc as alternative to anyuid to mount a workspace folder from the host
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jupyterhub-scc-privileged
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: jupyterhub-sa-to-scc-privileged
+subjects:
+- kind: Group
+  name: system:serviceaccounts:spark
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: jupyterhub-scc-privileged
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jupyterhub-spark
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: jupyterhub-spark-edit
+subjects:
+  - kind: ServiceAccount
+    name: jupyterhub-spark
+    namespace: spark
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+---
+# # copied from rendered helm chart & replaced clusterrole & clusterrolebinding with role & rolebinding
+# # Source: jupyterhub/templates/scheduling/user-scheduler/rbac.yaml
+# kind: Role
+# apiVersion: rbac.authorization.k8s.io/v1
+# metadata:
+#   name: jupyterhub-user-scheduler
+#   labels:
+#     component: user-scheduler
+#     app: jupyterhub
+#     release: jupyterhub
+#     chart: jupyterhub-2.0.0
+#     heritage: Helm
+# rules:
+#   # Copied from the system:kube-scheduler ClusterRole of the k8s version
+#   # matching the kube-scheduler binary we use. A modification has been made to
+#   # resourceName fields to remain relevant for how we have named our resources
+#   # in this Helm chart.
+#   #
+#   # NOTE: These rules have been:
+#   #       - unchanged between 1.12 and 1.15
+#   #       - changed in 1.16
+#   #       - changed in 1.17
+#   #       - unchanged between 1.18 and 1.20
+#   #       - changed in 1.21: get/list/watch permission for namespace,
+#   #                          csidrivers, csistoragecapacities was added.
+#   #       - unchanged between 1.22 and 1.23
+#   #
+#   # ref: https://github.com/kubernetes/kubernetes/blob/v1.23.0/plugin/pkg/auth/authorizer/rbac/bootstrappolicy/testdata/cluster-roles.yaml#L705-L861
+#   - apiGroups:
+#     - ""
+#     - events.k8s.io
+#     resources:
+#     - events
+#     verbs:
+#     - create
+#     - patch
+#     - update
+#   - apiGroups:
+#     - coordination.k8s.io
+#     resources:
+#     - leases
+#     verbs:
+#     - create
+#   - apiGroups:
+#     - coordination.k8s.io
+#     resourceNames:
+#     - jupyterhub-user-scheduler-lock
+#     resources:
+#     - leases
+#     verbs:
+#     - get
+#     - update
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - endpoints
+#     verbs:
+#     - create
+#   - apiGroups:
+#     - ""
+#     resourceNames:
+#     - jupyterhub-user-scheduler-lock
+#     resources:
+#     - endpoints
+#     verbs:
+#     - get
+#     - update
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - nodes
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - pods
+#     verbs:
+#     - delete
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - bindings
+#     - pods/binding
+#     verbs:
+#     - create
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - pods/status
+#     verbs:
+#     - patch
+#     - update
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - replicationcontrollers
+#     - services
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - apps
+#     - extensions
+#     resources:
+#     - replicasets
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - apps
+#     resources:
+#     - statefulsets
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - policy
+#     resources:
+#     - poddisruptionbudgets
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - persistentvolumeclaims
+#     - persistentvolumes
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - authentication.k8s.io
+#     resources:
+#     - tokenreviews
+#     verbs:
+#     - create
+#   - apiGroups:
+#     - authorization.k8s.io
+#     resources:
+#     - subjectaccessreviews
+#     verbs:
+#     - create
+#   - apiGroups:
+#     - storage.k8s.io
+#     resources:
+#     - csinodes
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - namespaces
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - storage.k8s.io
+#     resources:
+#     - csidrivers
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - storage.k8s.io
+#     resources:
+#     - csistoragecapacities
+#     verbs:
+#     - get
+#     - list
+#     - watch
+
+#   # Copied from the system:volume-scheduler ClusterRole of the k8s version
+#   # matching the kube-scheduler binary we use.
+#   #
+#   # NOTE: These rules have not changed between 1.12 and 1.23.
+#   #
+#   # ref: https://github.com/kubernetes/kubernetes/blob/v1.23.0/plugin/pkg/auth/authorizer/rbac/bootstrappolicy/testdata/cluster-roles.yaml#L1280-L1307
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - persistentvolumes
+#     verbs:
+#     - get
+#     - list
+#     - patch
+#     - update
+#     - watch
+#   - apiGroups:
+#     - storage.k8s.io
+#     resources:
+#     - storageclasses
+#     verbs:
+#     - get
+#     - list
+#     - watch
+#   - apiGroups:
+#     - ""
+#     resources:
+#     - persistentvolumeclaims
+#     verbs:
+#     - get
+#     - list
+#     - patch
+#     - update
+#     - watch
+# ---
+# # Source: jupyterhub/templates/scheduling/user-scheduler/rbac.yaml
+# kind: RoleBinding
+# apiVersion: rbac.authorization.k8s.io/v1
+# metadata:
+#   name: jupyterhub-user-scheduler
+#   labels:
+#     component: user-scheduler
+#     app: jupyterhub
+#     release: jupyterhub
+#     chart: jupyterhub-2.0.0
+#     heritage: Helm
+# subjects:
+#   - kind: ServiceAccount
+#     name: jupyterhub-user-scheduler
+#     namespace: "spark"
+# roleRef:
+#   kind: Role
+#   name: jupyterhub-user-scheduler
+#   apiGroup: rbac.authorization.k8s.io
+# ---
+# # Source: jupyterhub/templates/hub/rbac.yaml
+# kind: Role
+# apiVersion: rbac.authorization.k8s.io/v1
+# metadata:
+#   name: jupyterhub-hub
+#   labels:
+#     component: hub
+#     app: jupyterhub
+#     release: jupyterhub
+#     chart: jupyterhub-2.0.0
+#     heritage: Helm
+# rules:
+#   - apiGroups: [""]       # "" indicates the core API group
+#     resources: ["pods", "persistentvolumeclaims", "secrets", "services"]
+#     verbs: ["get", "watch", "list", "create", "delete"]
+#   - apiGroups: [""]       # "" indicates the core API group
+#     resources: ["events"]
+#     verbs: ["get", "watch", "list"]
+# ---
+# # Source: jupyterhub/templates/hub/rbac.yaml
+# kind: RoleBinding
+# apiVersion: rbac.authorization.k8s.io/v1
+# metadata:
+#   name: jupyterhub-hub
+#   labels:
+#     component: hub
+#     app: jupyterhub
+#     release: jupyterhub
+#     chart: jupyterhub-2.0.0
+#     heritage: Helm
+# subjects:
+#   - kind: ServiceAccount
+#     name: jupyterhub-hub
+#     namespace: "spark"
+# roleRef:
+#   kind: Role
+#   name: jupyterhub-hub
+#   apiGroup: rbac.authorization.k8s.io
+# ---
+

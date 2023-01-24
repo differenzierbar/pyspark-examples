@@ -8,7 +8,6 @@ hub:
     OpenShiftOAuthenticator:
       oauth_callback_url: https://jupyterhub.apps-crc.testing/hub/oauth_callback
       client_id: system:serviceaccount:spark:jupyterhub-oauth
-      client_secret: <replace_me>
     JupyterHub:
       authenticator_class: openshift
       admin_access: false
@@ -44,17 +43,21 @@ singleuser:
     type: none
     extraVolumes:
       - name: ecc
-        hostPath:
-          path: "/home/tobias/ecc"
+        hostPath: {}
+          # path: "/home/tobias/ecc"
           # path: "/home/{{ tpl .Values.hostUser . }}/ecc"
       - name: ssh
-        hostPath:
-          path: "/home/tobias/.ssh"
+        hostPath: {}
+          # path: "/home/tobias/.ssh"
           # path: "/home/{{ tpl .Values.hostUser . }}/.ssh"
       - name: gitconfig
-        hostPath:
-          path: "/home/tobias/.gitconfig"
+        hostPath: {}
+          # path: "/home/TOBIAS/.gitconfig"
           # path: "/home/{{ tpl .Values.hostUser . }}/.gitconfig"
+      - name: mysql
+        secret:
+          secretName: default-mysql
+          optional: true 
     extraVolumeMounts:
       - mountPath: /home/jovyan/work
         name: ecc
@@ -63,6 +66,9 @@ singleuser:
         readOnly: true
       - mountPath: /home/jovyan/.gitconfig
         name: gitconfig
+        readOnly: true
+      - name: mysql
+        mountPath: "/etc/secrets/mysql"
         readOnly: true
   profileList:
     - display_name: "Default"
@@ -79,3 +85,5 @@ prePuller:
     enabled: false
   hook:
     enabled: false
+# rbac:
+#   create: false
