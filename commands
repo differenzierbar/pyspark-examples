@@ -1,0 +1,30 @@
+~/spark-3.3.1-bin-hadoop3/bin/spark-submit --master k8s://api.crc.testing:6443 --conf "spark.kubernetes.namespace=test" pi.py 1000
+./spark-submit --master k8s://api.crc.testing:6443 --conf "spark.kubernetes.namespace=test" --conf "spark.kubernetes.driver.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.executor.container.image=apache/spark-py:v3.3.1" ~/spark/examples/src/main/python/pi.py 1000
+/opt/spark/bin/spark-submit --deploy-mode cluster --master k8s://api.crc.testing:6443 --conf "spark.kubernetes.namespace=test" --conf "spark.kubernetes.driver.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.executor.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.driver.volumes.emptyDir.[VolumeName].mount.path=<mount path>" /spark/examples/src/main/python/pi.py 1000
+
+/opt/spark/bin/spark-submit --deploy-mode cluster --master k8s://api.crc.testing:6443 --conf "spark.kubernetes.namespace=spark" --conf "spark.kubernetes.driver.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.executor.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.authenticate.driver.serviceAccountName=spark" local:///opt/spark/examples/src/main/python/pi.py 10
+
+./spark-submit --master k8s://api.crc.testing:6443 --conf "spark.driver.extraJavaOptions=-Djavax.net.ssl.trustStore=/spark/cacerts" --conf "spark.executor.extraJavaOptions=-Djavax.net.ssl.trustStore=/spark/cacerts" --conf "spark.kubernetes.namespace=test" --conf "spark.kubernetes.driver.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.executor.container.image=apache/spark-py:v3.3.1" /spark/examples/src/main/python/pi.py 1000
+
+./spark-submit --master k8s://192.168.130.11:6443 --conf "spark.kubernetes.namespace=test" --conf "spark.kubernetes.driver.container.image=apache/spark-py:v3.3.1" --conf "spark.kubernetes.executor.container.image=apache/spark-py:v3.3.1" /spark/examples/src/main/python/pi.py 1000
+
+~/spark-3.3.1-bin-hadoop3/bin/docker-image-tool.sh -r default-route-openshift-image-registry.apps-crc.testing/test/spark -t latest build
+~/spark-3.3.1-bin-hadoop3/bin/docker-image-tool.sh -r default-route-openshift-image-registry.apps-crc.testing/test/spark -t latest push
+
+
+docker run -v ~/spark:/spark -it default-route-openshift-image-registry.apps-crc.testing/test/spark/spark-py /bin/bash
+
+java -cp . SSLPoke api.crc.testing 443
+
+docker run --add-host api.crc.testing:192.168.130.11 -v ~/spark:/spark -v ~/cacerts:/usr/local/openjdk-11/lib/security/cacerts -it default-route-openshift-image-registry.apps-crc.testing/test/spark/spark-py /bin/bash
+docker run --add-host api.crc.testing:192.168.130.11 -v ~/ecc/config:/.kube/config -v ~/spark:/spark -v ~/cacerts:/usr/local/openjdk-11/lib/security/cacerts -it default-route-openshift-image-registry.apps-crc.testing/test/spark/spark-py /bin/bash
+
+podman run --add-host api.crc.testing:192.168.130.11 -v ~/ecc/config:/.kube/config -v ~/spark:/spark -v ~/cacerts:/usr/local/openjdk-11/lib/security/cacerts -it docker.io/apache/spark-py /bin/bash
+podman run -v ~/ecc/config:/.kube/config -v ~/spark:/spark -v ~/cacerts:/usr/local/openjdk-11/lib/security/cacerts -it docker.io/apache/spark-py /bin/bash
+podman run --user $UID --userns=keep-id -v ~/.kube/config:/opt/spark/work-dir/.kube/config -v ~/spark:/spark -v ~/cacerts:/usr/local/openjdk-11/lib/security/cacerts -it docker.io/apache/spark-py /bin/bash 
+
+podman run -p 8888:8888 --user $UID --userns=keep-id -v ~/.kube/config:/home/jovyan/.kube/config -v ./:/home/jovyan/work  jupyter/pyspark-notebook
+
+
+oc create serviceaccount spark
+oc create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=spark:spark --namespace=spark

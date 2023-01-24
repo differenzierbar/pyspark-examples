@@ -73,3 +73,9 @@ singleuser:
         # image_spec: 
   networkPolicy:
     enabled: false
+prePuller:
+  continuous:
+    # NOTE: if used with a Cluster Autoscaler, also add user-placeholders
+    enabled: false
+  hook:
+    enabled: false
