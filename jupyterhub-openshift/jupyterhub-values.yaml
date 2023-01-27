@@ -37,6 +37,7 @@ singleuser:
   image:
     name: image-registry.openshift-image-registry.svc:5000/spark/pyspark-notebook
     tag: spark-3.3.1-python-3.9
+    pullPolicy: Always
   cmd: ["/usr/local/bin/start.sh", "jupyterhub-singleuser"]
   serviceAccountName: jupyterhub-spark
   storage:
@@ -56,7 +57,7 @@ singleuser:
           # path: "/home/{{ tpl .Values.hostUser . }}/.gitconfig"
       - name: mysql
         secret:
-          secretName: default-mysql
+          secretName: mysql-mysql
           optional: true 
     extraVolumeMounts:
       - mountPath: /home/jovyan/work

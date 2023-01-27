@@ -6,6 +6,8 @@ if ! oc project spark ; then
     oc new-project spark
 fi
 
+helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
+
 here=`dirname $(realpath $0 --relative-to .)`
 
 # some things we need additionally to / upfront of the helm chart
